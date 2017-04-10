@@ -11,7 +11,9 @@ class Network(object):
     def __init__(self, dimensions, batch_size, initialize_loss=True):
         self.batch_size = batch_size
         self.layer_params = []
-        self.inputs = tf.placeholder(tf.float32, [batch_size, dimensions[1], dimensions[0], 3], name='input_images')
+        self.inputs = tf.placeholder(
+            tf.float32, [batch_size, dimensions[1], dimensions[0], 3], name='input_images'
+        ) / 255
         print("inputs shape: " + str(self.inputs.get_shape()))
         self.layer_params.append({
             'filter_count': 4*3,
@@ -19,7 +21,7 @@ class Network(object):
         })
         hidden1 = self.conv_layer("hidden1", self.layer_params[-1], self.inputs)
         print("hidden1 shape: " + str(hidden1.get_shape()))
-        self.output_layer = tf.nn.tanh(phase_shift(hidden1, 2, color=True))
+        self.output = tf.nn.tanh(phase_shift(hidden1, 2, color=True)) * 255
         if initialize_loss:
             self.real_images = tf.placeholder(tf.float32,
                                               [self.batch_size, dimensions[1] * 2, dimensions[0] * 2, 3],
@@ -49,8 +51,8 @@ class Network(object):
             return params['output']
 
     def get_loss(self):
-        print(self.output_layer.get_shape())
-        return tf.reduce_mean(tf.square(self.real_images - self.output_layer))
+        print(self.output.get_shape())
+        return tf.reduce_mean(tf.square(self.real_images - self.output))
 
     def train_step(self, images):
         resized_images = [imresize(image, (image.shape[0] // 2, image.shape[1] // 2)) for image in images]
@@ -60,4 +62,13 @@ class Network(object):
         sess.run(init)
         sess.run(train_step, feed_dict={
             self.inputs: np.array(resized_images),
-            self.real_images: np.array(images)})
+            self.real_images: np.array(images)
+        })
+
+    def inference(self, images):
+        init = tf.global_variables_initializer()
+        sess = tf.Session()
+        sess.run(init)
+        return sess.run(self.output, feed_dict={
+            self.inputs: np.array(images)
+        })
