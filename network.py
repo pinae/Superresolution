@@ -4,25 +4,28 @@ from __future__ import division, print_function, unicode_literals
 import tensorflow as tf
 from subpixel import PS as phase_shift
 from scipy.misc import imresize
+import numpy as np
 
 
 class Network(object):
-    def __init__(self, dimensions, batch_size):
+    def __init__(self, dimensions, batch_size, initialize_loss=True):
         self.batch_size = batch_size
-        self.dimensions = dimensions
         self.layer_params = []
-        self.inputs = tf.placeholder(tf.float32, [batch_size, dimensions[0], dimensions[1], 3], name='input_images')
+        self.inputs = tf.placeholder(tf.float32, [batch_size, dimensions[1], dimensions[0], 3], name='input_images')
+        print("inputs shape: " + str(self.inputs.get_shape()))
         self.layer_params.append({
             'filter_count': 4*3,
             'filter_shape': [3, 3]
         })
         hidden1 = self.conv_layer("hidden1", self.layer_params[-1], self.inputs)
-        print("hidden1 shape: "+str(hidden1.get_shape()))
+        print("hidden1 shape: " + str(hidden1.get_shape()))
         self.output_layer = tf.nn.tanh(phase_shift(hidden1, 2, color=True))
-        self.loss = self.get_loss()
-        init = tf.initialize_all_variables()
-        self.sess = tf.Session()
-        self.sess.run(init)
+        if initialize_loss:
+            self.real_images = tf.placeholder(tf.float32,
+                                              [self.batch_size, dimensions[1] * 2, dimensions[0] * 2, 3],
+                                              name='real_images')
+            self.loss = self.get_loss()
+            self.summary = tf.summary.scalar("loss", self.loss)
 
     @staticmethod
     def weight_variable(shape):
@@ -46,13 +49,15 @@ class Network(object):
             return params['output']
 
     def get_loss(self):
-        real_images = tf.placeholder(tf.float32, [self.batch_size, self.dimensions[0]*2, self.dimensions[1]*2, 3],
-                                     name='real_images')
         print(self.output_layer.get_shape())
-        loss_matrix = tf.reduce_mean(tf.square(real_images - self.output_layer))
-        return tf.scalar_summary("loss", loss_matrix)
+        return tf.reduce_mean(tf.square(self.real_images - self.output_layer))
 
     def train_step(self, images):
-        resized_images = imresize(images, (images.shape()[1] // 2, images.shape()[2] // 2))
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(self.loss)
-        self.sess.run(train_step, feed_dict={self.input_images: resized_images, self.real_images: images})
+        resized_images = [imresize(image, (image.shape[0] // 2, image.shape[1] // 2)) for image in images]
+        train_step = tf.train.AdamOptimizer(1e-4, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
+        init = tf.global_variables_initializer()
+        sess = tf.Session()
+        sess.run(init)
+        sess.run(train_step, feed_dict={
+            self.inputs: np.array(resized_images),
+            self.real_images: np.array(images)})
