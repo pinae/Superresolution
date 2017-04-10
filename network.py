@@ -51,7 +51,6 @@ class Network(object):
             return params['output']
 
     def get_loss(self):
-        print(self.output.get_shape())
         return tf.reduce_mean(tf.square(self.real_images - self.output))
 
     def train_step(self, images):
