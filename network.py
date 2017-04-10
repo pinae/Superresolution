@@ -53,6 +53,9 @@ class Network(object):
     def get_loss(self):
         return tf.reduce_mean(tf.square(self.real_images - self.output))
 
+    def get_batch_size(self):
+        return self.batch_size
+
     def train_step(self, images):
         resized_images = [imresize(image, (image.shape[0] // 2, image.shape[1] // 2)) for image in images]
         train_step = tf.train.AdamOptimizer(1e-4, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
