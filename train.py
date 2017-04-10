@@ -9,7 +9,10 @@ import sys
 
 if __name__ == "__main__":
     image_size = (320, 240)
-    net = Network(dimensions=(320, 240), batch_size=4)
+    net = Network(dimensions=(320, 240), batch_size=10)
+    net.initialize()
+    if os.path.exists(os.path.abspath("network_params.index")):
+        net.load("network_params")
     batches = []
     images = []
     for filename in os.listdir("images/"):
@@ -18,7 +21,7 @@ if __name__ == "__main__":
         if len(images) >= net.get_batch_size():
             batches.append(images)
             images = []
-    for epoch in range(1):
+    for epoch in range(20):
         print("Training epoch " + str(epoch + 1) + " ...")
         for batch_no, batch in enumerate(batches):
             net.train_step(batch)
@@ -26,3 +29,4 @@ if __name__ == "__main__":
             sys.stdout.write("[%-50s] %d%%" % ('=' * int((batch_no + 1) / len(batches) * 50),
                                                int((batch_no + 1) / len(batches) * 100)))
             sys.stdout.flush()
+        print("\nParams saved: " + net.save() + "\n")

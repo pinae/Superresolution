@@ -5,6 +5,7 @@ import tensorflow as tf
 from subpixel import PS as phase_shift
 from scipy.misc import imresize
 import numpy as np
+import os
 
 
 class Network(object):
@@ -28,6 +29,13 @@ class Network(object):
                                               name='real_images')
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
+            self.optimized = tf.train.AdamOptimizer(1e-4, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
+        self.sess = tf.Session()
+        self.saver = tf.train.Saver()
+
+    def initialize(self):
+        init = tf.global_variables_initializer()
+        self.sess.run(init)
 
     @staticmethod
     def weight_variable(shape):
@@ -58,19 +66,19 @@ class Network(object):
 
     def train_step(self, images):
         resized_images = [imresize(image, (image.shape[0] // 2, image.shape[1] // 2)) for image in images]
-        train_step = tf.train.AdamOptimizer(1e-4, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
-        init = tf.global_variables_initializer()
-        sess = tf.Session()
-        sess.run(init)
-        sess.run(train_step, feed_dict={
+        self.sess.run(self.optimized, feed_dict={
             self.inputs: np.array(resized_images),
             self.real_images: np.array(images)
         })
 
     def inference(self, images):
-        init = tf.global_variables_initializer()
-        sess = tf.Session()
-        sess.run(init)
-        return sess.run(self.output, feed_dict={
+        return self.sess.run(self.output, feed_dict={
             self.inputs: np.array(images)
         })
+
+    def save(self):
+        save_path = self.saver.save(self.sess, os.path.abspath("network_params"))
+        return save_path
+
+    def load(self, path="network_params"):
+        self.saver.restore(self.sess, os.path.abspath(path))
