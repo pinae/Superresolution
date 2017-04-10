@@ -11,9 +11,9 @@ class Network(object):
     def __init__(self, dimensions, batch_size, initialize_loss=True):
         self.batch_size = batch_size
         self.layer_params = []
-        self.inputs = tf.placeholder(
+        self.inputs = tf.div(tf.placeholder(
             tf.float32, [batch_size, dimensions[1], dimensions[0], 3], name='input_images'
-        ) / 255
+        ), 255)
         print("inputs shape: " + str(self.inputs.get_shape()))
         self.layer_params.append({
             'filter_count': 4*3,
