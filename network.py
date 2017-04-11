@@ -17,19 +17,25 @@ class Network(object):
         ), 255)
         print("inputs shape: " + str(self.inputs.get_shape()))
         self.layer_params.append({
-            'filter_count': 4*3,
+            'filter_count': 64,
             'filter_shape': [3, 3]
         })
         hidden1 = self.conv_layer("hidden1", self.layer_params[-1], self.inputs)
         print("hidden1 shape: " + str(hidden1.get_shape()))
-        self.output = tf.nn.tanh(phase_shift(hidden1, 2, color=True)) * 255
+        self.layer_params.append({
+            'filter_count': 4 * 3,
+            'filter_shape': [3, 3]
+        })
+        hidden2 = self.conv_layer("hidden2", self.layer_params[-1], hidden1)
+        print("hidden2 shape: " + str(hidden2.get_shape()))
+        self.output = tf.nn.tanh(phase_shift(hidden2, 2, color=True)) * 255
         if initialize_loss:
             self.real_images = tf.placeholder(tf.float32,
                                               [self.batch_size, dimensions[1] * 2, dimensions[0] * 2, 3],
                                               name='real_images')
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
-            self.optimized = tf.train.AdamOptimizer(1e-4, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
+            self.optimized = tf.train.AdamOptimizer(0.001, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
         self.sess = tf.Session()
         self.saver = tf.train.Saver()
 
