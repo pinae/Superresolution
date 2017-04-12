@@ -11,27 +11,33 @@ import os
 class Network(object):
     def __init__(self, dimensions, batch_size, initialize_loss=True):
         self.batch_size = batch_size
+        self.scale_factor = 2
         self.layer_params = []
         self.inputs = tf.div(tf.placeholder(
             tf.float32, [batch_size, dimensions[1], dimensions[0], 3], name='input_images'
-        ), 255)
+        ), 256.0)
         print("inputs shape: " + str(self.inputs.get_shape()))
         self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
+            'filter_count': 3,
+            'filter_shape': [1, 1]
         })
         hidden1 = self.conv_layer("hidden1", self.layer_params[-1], self.inputs)
         print("hidden1 shape: " + str(hidden1.get_shape()))
         self.layer_params.append({
-            'filter_count': 4 * 3,
+            'filter_count': self.scale_factor * self.scale_factor * 3,
             'filter_shape': [3, 3]
         })
         hidden2 = self.conv_layer("hidden2", self.layer_params[-1], hidden1)
         print("hidden2 shape: " + str(hidden2.get_shape()))
-        self.output = tf.nn.tanh(phase_shift(hidden2, 2, color=True)) * 255
+        #self.output = tf.nn.tanh(phase_shift(hidden2, self.scale_factor, color=True)) * 255
+        self.output = phase_shift(hidden2, self.scale_factor, color=True) * 255
+        #self.output = hidden2
         if initialize_loss:
             self.real_images = tf.placeholder(tf.float32,
-                                              [self.batch_size, dimensions[1] * 2, dimensions[0] * 2, 3],
+                                              [self.batch_size,
+                                               dimensions[1] * self.scale_factor,
+                                               dimensions[0] * self.scale_factor,
+                                               3],
                                               name='real_images')
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
@@ -59,26 +65,31 @@ class Network(object):
                                            params['filter_count']])
             biases = self.bias_variable([params['filter_count']])
             conv = tf.nn.conv2d(data, weights, strides=[1, 1, 1, 1], padding='SAME')
-            params['output'] = tf.nn.relu(conv + biases)
+            #params['output'] = tf.nn.relu(conv + biases)
+            params['output'] = conv + biases
             params['biases'] = biases
             params['weights'] = weights
             return params['output']
 
     def get_loss(self):
-        return tf.reduce_mean(tf.square(self.real_images - self.output))
+        return tf.reduce_mean(tf.square(self.output - tf.div(self.real_images, 256.0)))
 
     def get_batch_size(self):
         return self.batch_size
 
+    def get_scale_factor(self):
+        return self.scale_factor
+
     def train_step(self, images):
-        resized_images = [imresize(image, (image.shape[0] // 2, image.shape[1] // 2)) for image in images]
+        resized_images = [imresize(image, (image.shape[0] // self.scale_factor,
+                                           image.shape[1] // self.scale_factor)) for image in images]
         self.sess.run(self.optimized, feed_dict={
             self.inputs: np.array(resized_images),
             self.real_images: np.array(images)
         })
 
     def inference(self, images):
-        return self.sess.run(self.output, feed_dict={
+        return self.sess.run(self.output * 256, feed_dict={
             self.inputs: np.array(images)
         })
 

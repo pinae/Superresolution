@@ -16,12 +16,13 @@ if __name__ == "__main__":
     batches = []
     images = []
     for filename in os.listdir("images/"):
-        im = size(Image.open(os.path.join("images", filename)), (image_size[0] * 2, image_size[1] * 2))
+        im = size(Image.open(os.path.join("images", filename)),
+                  (image_size[0] * net.get_scale_factor(), image_size[1] * net.get_scale_factor()))
         images.append(np.array(im))
         if len(images) >= net.get_batch_size():
             batches.append(images)
             images = []
-    for epoch in range(20):
+    for epoch in range(20000):
         print("Training epoch " + str(epoch + 1) + " ...")
         for batch_no, batch in enumerate(batches):
             net.train_step(batch)
@@ -30,3 +31,9 @@ if __name__ == "__main__":
                                                int((batch_no + 1) / len(batches) * 100)))
             sys.stdout.flush()
         print("\nParams saved: " + net.save() + "\n")
+        im = size(Image.open(os.path.join("images", "pexels-photo-25953.jpg")), (image_size[0], image_size[1]))
+        output = net.inference(images=[np.array(im) for _ in range(net.get_batch_size())])
+        o = output[0]
+        #o[o < 0] = 0
+        #o[o > 1] = 1
+        Image.fromarray(o.astype(np.uint8)).save("test_image_epoch_"+str(epoch+1)+".png")
