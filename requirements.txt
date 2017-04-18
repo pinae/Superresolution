@@ -1,0 +1,5 @@
+wheel
+pillow
+numpy
+scipy
+tensorflow
