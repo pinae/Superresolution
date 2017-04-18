@@ -13,15 +13,16 @@ class Network(object):
         self.batch_size = batch_size
         self.scale_factor = 2
         self.layer_params = []
-        self.inputs = tf.div(tf.placeholder(
+        self.inputs = tf.placeholder(
             tf.float32, [batch_size, dimensions[1], dimensions[0], 3], name='input_images'
-        ), 256.0)
+        )
+        scaled_inputs = self.inputs / 256.0
         print("inputs shape: " + str(self.inputs.get_shape()))
         self.layer_params.append({
-            'filter_count': 3,
-            'filter_shape': [1, 1]
+            'filter_count': 64,
+            'filter_shape': [3, 3]
         })
-        hidden1 = self.conv_layer("hidden1", self.layer_params[-1], self.inputs)
+        hidden1 = self.conv_layer("hidden1", self.layer_params[-1], scaled_inputs)
         print("hidden1 shape: " + str(hidden1.get_shape()))
         self.layer_params.append({
             'filter_count': self.scale_factor * self.scale_factor * 3,
@@ -29,9 +30,8 @@ class Network(object):
         })
         hidden2 = self.conv_layer("hidden2", self.layer_params[-1], hidden1)
         print("hidden2 shape: " + str(hidden2.get_shape()))
-        #self.output = tf.nn.tanh(phase_shift(hidden2, self.scale_factor, color=True)) * 255
-        self.output = phase_shift(hidden2, self.scale_factor, color=True) * 255
-        #self.output = hidden2
+        #self.output = tf.nn.tanh(phase_shift(hidden2, self.scale_factor, color=True))
+        self.output = phase_shift(hidden2, self.scale_factor, color=True)
         if initialize_loss:
             self.real_images = tf.placeholder(tf.float32,
                                               [self.batch_size,
@@ -41,7 +41,7 @@ class Network(object):
                                               name='real_images')
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
-            self.optimized = tf.train.AdamOptimizer(0.001, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
+            self.optimized = tf.train.AdamOptimizer(0.01, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
         self.sess = tf.Session()
         self.saver = tf.train.Saver()
 
@@ -65,14 +65,14 @@ class Network(object):
                                            params['filter_count']])
             biases = self.bias_variable([params['filter_count']])
             conv = tf.nn.conv2d(data, weights, strides=[1, 1, 1, 1], padding='SAME')
-            #params['output'] = tf.nn.relu(conv + biases)
-            params['output'] = conv + biases
+            params['output'] = tf.nn.relu(conv + biases)
+            #params['output'] = conv + biases
             params['biases'] = biases
             params['weights'] = weights
             return params['output']
 
     def get_loss(self):
-        return tf.reduce_mean(tf.square(self.output - tf.div(self.real_images, 256.0)))
+        return tf.reduce_sum(tf.nn.l2_loss(self.output - tf.div(self.real_images, 256.0)))
 
     def get_batch_size(self):
         return self.batch_size
@@ -89,7 +89,7 @@ class Network(object):
         })
 
     def inference(self, images):
-        return self.sess.run(self.output * 256, feed_dict={
+        return self.sess.run(self.output * 256.0, feed_dict={
             self.inputs: np.array(images)
         })
 

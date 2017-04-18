@@ -22,6 +22,12 @@ if __name__ == "__main__":
         if len(images) >= net.get_batch_size():
             batches.append(images)
             images = []
+    output = net.inference(images=[np.array(
+        size(Image.open(os.path.join("images", "pexels-photo-25953.jpg")),
+             (image_size[0], image_size[1]))) for _ in range(net.get_batch_size())])
+    o = output[0]
+    print(o[100][100])
+    Image.fromarray(o.astype(np.uint8)).save("test_image_epoch_" + str(0) + ".png")
     for epoch in range(20000):
         print("Training epoch " + str(epoch + 1) + " ...")
         for batch_no, batch in enumerate(batches):
@@ -34,6 +40,7 @@ if __name__ == "__main__":
         im = size(Image.open(os.path.join("images", "pexels-photo-25953.jpg")), (image_size[0], image_size[1]))
         output = net.inference(images=[np.array(im) for _ in range(net.get_batch_size())])
         o = output[0]
+        print(o[100][100])
         #o[o < 0] = 0
         #o[o > 1] = 1
         Image.fromarray(o.astype(np.uint8)).save("test_image_epoch_"+str(epoch+1)+".png")
