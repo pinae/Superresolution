@@ -41,7 +41,11 @@ class Network(object):
                                               name='real_images')
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
-            self.optimized = tf.train.AdamOptimizer(0.01, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
+            self.epoch = tf.placeholder(tf.int32, name='epoch')
+            self.learning_rate = tf.train.exponential_decay(0.01, self.epoch,
+                                                            10, 0.9, staircase=True)
+            self.optimized = tf.train.AdamOptimizer(self.learning_rate,
+                                                    beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
         self.sess = tf.Session()
         self.saver = tf.train.Saver()
 
@@ -80,13 +84,15 @@ class Network(object):
     def get_scale_factor(self):
         return self.scale_factor
 
-    def train_step(self, images):
+    def train_step(self, images, epoch=0):
         resized_images = [imresize(image, (image.shape[0] // self.scale_factor,
                                            image.shape[1] // self.scale_factor)) for image in images]
-        self.sess.run(self.optimized, feed_dict={
+        _, loss, lr = self.sess.run([self.optimized, self.loss, self.learning_rate], feed_dict={
             self.inputs: np.array(resized_images),
-            self.real_images: np.array(images)
+            self.real_images: np.array(images),
+            self.epoch: epoch
         })
+        return loss, lr
 
     def inference(self, images):
         return self.sess.run(self.output * 256.0, feed_dict={
