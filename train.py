@@ -22,6 +22,15 @@ if __name__ == "__main__":
         if len(images) >= net.get_batch_size():
             batches.append(images)
             images = []
+    test_batches = []
+    test_images = []
+    for filename in os.listdir("validation/"):
+        im = size(Image.open(os.path.join("validation", filename)),
+                  (image_size[0] * net.get_scale_factor(), image_size[1] * net.get_scale_factor()))
+        test_images.append(np.array(im))
+        if len(images) >= net.get_batch_size():
+            test_batches.append(test_images)
+            test_images = []
     output = net.inference(images=[np.array(
         size(Image.open(os.path.join("images", "pexels-photo-25953.jpg")),
              (image_size[0], image_size[1]))) for _ in range(net.get_batch_size())])
@@ -31,17 +40,25 @@ if __name__ == "__main__":
     for epoch in range(20000):
         print("Training epoch " + str(epoch + 1) + " ...")
         losses = []
-        lrs = []
         for batch_no, batch in enumerate(batches):
             loss, lr = net.train_step(batch, epoch=epoch)
             losses.append(loss)
-            lrs.append(lr)
             sys.stdout.write('\r')
             sys.stdout.write("[%-50s] %d%%" % ('=' * int((batch_no + 1) / len(batches) * 50),
                                                int((batch_no + 1) / len(batches) * 100)))
             sys.stdout.flush()
+        print("Learning rate: " + str(lr))
         print("\nLoss: " + str(losses))
-        print("Learning rates: " + str(lrs))
+        print("\nValidation:")
+        losses = []
+        for batch_no, batch in enumerate(batches):
+            loss = net.validation_step(batch)
+            losses.append(loss)
+            sys.stdout.write('\r')
+            sys.stdout.write("[%-50s] %d%%" % ('=' * int((batch_no + 1) / len(batches) * 50),
+                                               int((batch_no + 1) / len(batches) * 100)))
+            sys.stdout.flush()
+        print("Validation loss: " + str(sum(losses)/len(losses)))
         print("\nParams saved: " + net.save() + "\n")
         im = size(Image.open(os.path.join("images", "pexels-photo-25953.jpg")), (image_size[0], image_size[1]))
         output = net.inference(images=[np.array(im) for _ in range(net.get_batch_size())])

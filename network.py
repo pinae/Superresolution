@@ -94,6 +94,15 @@ class Network(object):
         })
         return loss, lr
 
+    def validation_step(self, images):
+        resized_images = [imresize(image, (image.shape[0] // self.scale_factor,
+                                           image.shape[1] // self.scale_factor)) for image in images]
+        loss = self.sess.run([self.loss], feed_dict={
+            self.inputs: np.array(resized_images),
+            self.real_images: np.array(images)
+        })
+        return loss
+
     def inference(self, images):
         return self.sess.run(self.output * 256.0, feed_dict={
             self.inputs: np.array(images)
