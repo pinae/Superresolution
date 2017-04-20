@@ -39,7 +39,7 @@ if __name__ == "__main__":
             print("Errorous file: " + filename)
             continue
         test_images.append(np.array(im))
-        if len(images) >= net.get_batch_size():
+        if len(test_images) >= net.get_batch_size():
             test_batches.append(test_images)
             test_images = []
         print(str(len(test_batches)) + " validation batches scaled.")
