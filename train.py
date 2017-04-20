@@ -15,22 +15,36 @@ if __name__ == "__main__":
         net.load("network_params")
     batches = []
     images = []
-    for filename in os.listdir("images/"):
-        im = size(Image.open(os.path.join("images", filename)),
-                  (image_size[0] * net.get_scale_factor(), image_size[1] * net.get_scale_factor()))
+    for filename in os.listdir("../../images_2016_08/train/"):
+        try:
+            im = size(Image.open(os.path.join("../../images_2016_08/train/", filename)),
+                      (image_size[0] * net.get_scale_factor(), image_size[1] * net.get_scale_factor()))
+        except ZeroDivisionError or OSError:
+            print("Errorous file: " + filename)
+            continue
         images.append(np.array(im))
         if len(images) >= net.get_batch_size():
             batches.append(images)
             images = []
+        print(str(len(batches)) + " batches scaled.")
+        if len(batches) >= 100:
+            break
     test_batches = []
     test_images = []
-    for filename in os.listdir("validation/"):
-        im = size(Image.open(os.path.join("validation", filename)),
-                  (image_size[0] * net.get_scale_factor(), image_size[1] * net.get_scale_factor()))
+    for filename in os.listdir("../../images_2016_08/validation/"):
+        try:
+            im = size(Image.open(os.path.join("../../images_2016_08/validation/", filename)),
+                      (image_size[0] * net.get_scale_factor(), image_size[1] * net.get_scale_factor()))
+        except ZeroDivisionError or OSError:
+            print("Errorous file: " + filename)
+            continue
         test_images.append(np.array(im))
         if len(images) >= net.get_batch_size():
             test_batches.append(test_images)
             test_images = []
+        print(str(len(test_batches)) + " validation batches scaled.")
+        if len(test_batches) >= 10:
+            break
     output = net.inference(images=[np.array(
         size(Image.open(os.path.join("images", "pexels-photo-25953.jpg")),
              (image_size[0], image_size[1]))) for _ in range(net.get_batch_size())])
