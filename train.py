@@ -11,7 +11,7 @@ if __name__ == "__main__":
     image_size = (320, 240)
     net = Network(dimensions=(320, 240), batch_size=10)
     net.initialize()
-    if os.path.exists(os.path.abspath("network_params.index")):
+    if os.path.exists(os.path.abspath("nnetwork_params.index")):
         net.load("network_params")
     batches = []
     images = []
@@ -78,15 +78,18 @@ if __name__ == "__main__":
         print("\nLearning rate: " + str(lr))
         print("Loss: " + str(losses))
         print("\nValidation:")
-        losses = []
+        validation_losses = []
         for batch_no, batch in enumerate(test_batches):
             loss = net.validation_step(batch)[0]
-            losses.append(loss)
+            validation_losses.append(loss)
             sys.stdout.write('\r')
             sys.stdout.write("[%-50s] %d%%" % ('=' * int((batch_no + 1) / len(test_batches) * 50),
                                                int((batch_no + 1) / len(test_batches) * 100)))
             sys.stdout.flush()
-        print("\nValidation loss: " + str(sum(losses)/len(losses)))
+        print("\nValidation loss: " + str(sum(validation_losses)/len(validation_losses)))
+        with open("losses.csv", 'a') as csv:
+            csv.write(", ".join(
+                [str(loss_value) for loss_value in [sum(validation_losses)/len(validation_losses)] + losses]) + "\n")
         print("\nParams saved: " + net.save() + "\n")
         im = size(Image.open(os.path.join("images", "pexels-photo-25953.jpg")), (image_size[0], image_size[1]))
         output = net.inference(images=[np.array(im) for _ in range(net.get_batch_size())])

@@ -29,65 +29,86 @@ class Network(object):
             'filter_count': 64,
             'filter_shape': [3, 3]
         })
-        res_layer_1 = self.conv_layer("hidden1", self.layer_params[-1], hidden1,
-                                      weight_stddev=0.0001, bias_init=0.0) + hidden1
+        res_layer_1 = self.conv_layer("res_layer_1", self.layer_params[-1], hidden1,
+                                      weight_stddev=0.0256, bias_init=0.0) + hidden1
         self.layer_params.append({
             'filter_count': 64,
             'filter_shape': [3, 3]
         })
-        res_layer_2 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_1,
-                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_1
+        res_layer_2 = self.conv_layer("res_layer_2", self.layer_params[-1], res_layer_1,
+                                      weight_stddev=0.0128, bias_init=0.0) + res_layer_1
         self.layer_params.append({
             'filter_count': 64,
             'filter_shape': [3, 3]
         })
-        res_layer_3 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_2,
-                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_2
+        res_layer_3 = self.conv_layer("res_layer_3", self.layer_params[-1], res_layer_2,
+                                      weight_stddev=0.0064, bias_init=0.0) + res_layer_2
         self.layer_params.append({
             'filter_count': 64,
             'filter_shape': [3, 3]
         })
-        res_layer_4 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_3,
-                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_3
+        res_layer_4 = self.conv_layer("res_layer_4", self.layer_params[-1], res_layer_3,
+                                      weight_stddev=0.0032, bias_init=0.0) + res_layer_3
         self.layer_params.append({
             'filter_count': 64,
             'filter_shape': [3, 3]
         })
-        res_layer_5 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_4,
-                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_4
+        res_layer_5 = self.conv_layer("res_layer_5", self.layer_params[-1], res_layer_4,
+                                      weight_stddev=0.0016, bias_init=0.0) + res_layer_4
         self.layer_params.append({
             'filter_count': 64,
             'filter_shape': [3, 3]
         })
-        res_layer_6 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_5,
-                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_5
+        res_layer_6 = self.conv_layer("res_layer_6", self.layer_params[-1], res_layer_5,
+                                      weight_stddev=0.0008, bias_init=0.0) + res_layer_5
         self.layer_params.append({
             'filter_count': 64,
             'filter_shape': [3, 3]
         })
-        res_layer_7 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_6,
-                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_6
+        res_layer_7 = self.conv_layer("res_layer_7", self.layer_params[-1], res_layer_6,
+                                      weight_stddev=0.0004, bias_init=0.0) + res_layer_6
         self.layer_params.append({
             'filter_count': 64,
             'filter_shape': [3, 3]
         })
-        res_layer_8 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_7,
-                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_7
+        res_layer_8 = self.conv_layer("res_layer_8", self.layer_params[-1], res_layer_7,
+                                      weight_stddev=0.0002, bias_init=0.0) + res_layer_7
         self.layer_params.append({
             'filter_count': 64,
             'filter_shape': [3, 3]
         })
-        res_layer_9 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_8,
+        res_layer_9 = self.conv_layer("res_layer_9", self.layer_params[-1], res_layer_8,
                                       weight_stddev=0.0001, bias_init=0.0) + res_layer_8
         # Phase shift layer
         self.layer_params.append({
             'filter_count': self.scale_factor * self.scale_factor * 3,
             'filter_shape': [3, 3]
         })
-        phase_shift_layer = self.conv_layer("phase_shift_layer", self.layer_params[-1], res_layer_9)
-        print("phase_shift_layer shape: " + str(phase_shift_layer.get_shape()))
-        #self.output = tf.nn.tanh(phase_shift(phase_shift_layer, self.scale_factor, color=True))
-        self.output = phase_shift(phase_shift_layer, self.scale_factor, color=True)
+        phase_shift_input_layer = self.conv_layer("phase_shift_input_layer", self.layer_params[-1], res_layer_9)
+        print("phase_shift_input_layer shape: " + str(phase_shift_input_layer.get_shape()))
+        self.phase_shift_output_layer = phase_shift(phase_shift_input_layer, self.scale_factor, color=True)
+        self.layer_params.append({
+            'filter_count': 32,
+            'filter_shape': [3, 3]
+        })
+        wide1 = self.conv_layer("wide1", self.layer_params[-1], self.phase_shift_output_layer)
+        self.layer_params.append({
+            'filter_count': 32,
+            'filter_shape': [3, 3]
+        })
+        wide_res_layer1 = self.conv_layer("wide_res_layer1", self.layer_params[-1], wide1,
+                                          weight_stddev=0.001, bias_init=0.0) + wide1
+        self.layer_params.append({
+            'filter_count': 32,
+            'filter_shape': [3, 3]
+        })
+        wide_res_layer2 = self.conv_layer("wide_res_layer2", self.layer_params[-1], wide_res_layer1,
+                                          weight_stddev=0.0001, bias_init=0.0) + wide_res_layer1
+        self.layer_params.append({
+            'filter_count': 3,
+            'filter_shape': [3, 3]
+        })
+        self.output = self.conv_layer("wide_res_layer2", self.layer_params[-1], wide_res_layer2)
         if initialize_loss:
             self.real_images = tf.placeholder(tf.float32,
                                               [self.batch_size,
@@ -98,8 +119,8 @@ class Network(object):
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
             self.epoch = tf.placeholder(tf.int32, name='epoch')
-            self.learning_rate = tf.train.exponential_decay(0.000001, self.epoch,
-                                                            10, 0.9, staircase=True)
+            self.learning_rate = tf.train.exponential_decay(0.000005, self.epoch,
+                                                            10, 0.95, staircase=True)
             self.optimized = tf.train.AdamOptimizer(self.learning_rate,
                                                     beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
         self.sess = tf.Session()
@@ -126,7 +147,6 @@ class Network(object):
             biases = self.bias_variable([params['filter_count']], initial=bias_init)
             conv = tf.nn.conv2d(data, weights, strides=[1, 1, 1, 1], padding='SAME')
             params['output'] = tf.nn.relu(conv + biases)
-            #params['output'] = conv + biases
             params['biases'] = biases
             params['weights'] = weights
             return params['output']
