@@ -24,14 +24,70 @@ class Network(object):
         })
         hidden1 = self.conv_layer("hidden1", self.layer_params[-1], scaled_inputs)
         print("hidden1 shape: " + str(hidden1.get_shape()))
+        # Residual layers
+        self.layer_params.append({
+            'filter_count': 64,
+            'filter_shape': [3, 3]
+        })
+        res_layer_1 = self.conv_layer("hidden1", self.layer_params[-1], hidden1,
+                                      weight_stddev=0.0001, bias_init=0.0) + hidden1
+        self.layer_params.append({
+            'filter_count': 64,
+            'filter_shape': [3, 3]
+        })
+        res_layer_2 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_1,
+                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_1
+        self.layer_params.append({
+            'filter_count': 64,
+            'filter_shape': [3, 3]
+        })
+        res_layer_3 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_2,
+                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_2
+        self.layer_params.append({
+            'filter_count': 64,
+            'filter_shape': [3, 3]
+        })
+        res_layer_4 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_3,
+                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_3
+        self.layer_params.append({
+            'filter_count': 64,
+            'filter_shape': [3, 3]
+        })
+        res_layer_5 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_4,
+                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_4
+        self.layer_params.append({
+            'filter_count': 64,
+            'filter_shape': [3, 3]
+        })
+        res_layer_6 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_5,
+                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_5
+        self.layer_params.append({
+            'filter_count': 64,
+            'filter_shape': [3, 3]
+        })
+        res_layer_7 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_6,
+                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_6
+        self.layer_params.append({
+            'filter_count': 64,
+            'filter_shape': [3, 3]
+        })
+        res_layer_8 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_7,
+                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_7
+        self.layer_params.append({
+            'filter_count': 64,
+            'filter_shape': [3, 3]
+        })
+        res_layer_9 = self.conv_layer("hidden1", self.layer_params[-1], res_layer_8,
+                                      weight_stddev=0.0001, bias_init=0.0) + res_layer_8
+        # Phase shift layer
         self.layer_params.append({
             'filter_count': self.scale_factor * self.scale_factor * 3,
             'filter_shape': [3, 3]
         })
-        hidden2 = self.conv_layer("hidden2", self.layer_params[-1], hidden1)
-        print("hidden2 shape: " + str(hidden2.get_shape()))
-        #self.output = tf.nn.tanh(phase_shift(hidden2, self.scale_factor, color=True))
-        self.output = phase_shift(hidden2, self.scale_factor, color=True)
+        phase_shift_layer = self.conv_layer("phase_shift_layer", self.layer_params[-1], res_layer_9)
+        print("phase_shift_layer shape: " + str(phase_shift_layer.get_shape()))
+        #self.output = tf.nn.tanh(phase_shift(phase_shift_layer, self.scale_factor, color=True))
+        self.output = phase_shift(phase_shift_layer, self.scale_factor, color=True)
         if initialize_loss:
             self.real_images = tf.placeholder(tf.float32,
                                               [self.batch_size,
@@ -42,7 +98,7 @@ class Network(object):
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
             self.epoch = tf.placeholder(tf.int32, name='epoch')
-            self.learning_rate = tf.train.exponential_decay(0.01, self.epoch,
+            self.learning_rate = tf.train.exponential_decay(0.000001, self.epoch,
                                                             10, 0.9, staircase=True)
             self.optimized = tf.train.AdamOptimizer(self.learning_rate,
                                                     beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
@@ -54,20 +110,20 @@ class Network(object):
         self.sess.run(init)
 
     @staticmethod
-    def weight_variable(shape):
-        initial = tf.truncated_normal(shape, stddev=0.1)
+    def weight_variable(shape, stddev=0.1):
+        initial = tf.truncated_normal(shape, stddev=stddev)
         return tf.Variable(initial)
 
     @staticmethod
-    def bias_variable(shape):
-        initial = tf.constant(0.1, shape=shape)
+    def bias_variable(shape, initial=0.1):
+        initial = tf.constant(initial, shape=shape)
         return tf.Variable(initial)
 
-    def conv_layer(self, name, params, data):
+    def conv_layer(self, name, params, data, weight_stddev=0.1, bias_init=0.1):
         with tf.variable_scope(name):
             weights = self.weight_variable(params['filter_shape'] + [data.get_shape().as_list()[3],
-                                           params['filter_count']])
-            biases = self.bias_variable([params['filter_count']])
+                                           params['filter_count']], stddev=weight_stddev)
+            biases = self.bias_variable([params['filter_count']], initial=bias_init)
             conv = tf.nn.conv2d(data, weights, strides=[1, 1, 1, 1], padding='SAME')
             params['output'] = tf.nn.relu(conv + biases)
             #params['output'] = conv + biases

@@ -12,4 +12,4 @@ if __name__ == "__main__":
     net.load()
     im = size(Image.open(os.path.join("images", "pexels-photo-25953.jpg")), (image_size[0], image_size[1]))
     output = net.inference(images=[np.array(im)])
-    Image.fromarray(output[0].astype(np.uint8)).show()
+    Image.fromarray(np.clip(output[0], 0.0, 255.0).astype(np.uint8)).show()
