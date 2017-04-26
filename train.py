@@ -10,6 +10,7 @@ import sys
 
 def training(training_batches):
     training_losses = []
+    lr = 0.0
     for batch_no, batch in enumerate(training_batches):
         loss, lr = net.train_step(batch, epoch=epoch)
         training_losses.append(loss)
@@ -75,7 +76,7 @@ if __name__ == "__main__":
             batches.append(images)
             images = []
             print(str(len(batches)) + " batches scaled.")
-        if len(batches) >= 20:
+        if len(batches) >= 200:
             break
     test_batches = []
     test_images = []
@@ -98,7 +99,7 @@ if __name__ == "__main__":
             test_batches.append(test_images)
             test_images = []
             print(str(len(test_batches)) + " validation batches scaled.")
-        if len(test_batches) >= 2:
+        if len(test_batches) >= 20:
             break
     val_losses = validation(test_batches)
     best_validation_loss = sum(val_losses) / len(val_losses)
@@ -117,6 +118,7 @@ if __name__ == "__main__":
         print("Validation loss: " + str(avg_validation_loss))
         log_losses(train_losses, val_losses)
         if avg_validation_loss < best_validation_loss:
+            best_validation_loss = avg_validation_loss
             print("Params saved: " + net.save())
         else:
             print("Discarding the epoch because the validation accuracy did not improve.")
