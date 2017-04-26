@@ -32,7 +32,7 @@ def validation(validation_batches):
         sys.stdout.write("[%-50s] %d%%" % ('=' * int((validation_batch_no + 1) / len(validation_batches) * 50),
                                            int((validation_batch_no + 1) / len(validation_batches) * 100)))
         sys.stdout.flush()
-    print("\n")
+    print("")
     return validation_losses
 
 
