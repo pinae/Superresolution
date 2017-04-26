@@ -9,7 +9,7 @@ import sys
 
 if __name__ == "__main__":
     image_size = (320, 240)
-    net = Network(dimensions=(320, 240), batch_size=10)
+    net = Network(dimensions=(320, 240), batch_size=5)
     net.initialize()
     if os.path.exists(os.path.abspath("nnetwork_params.index")):
         net.load("network_params")
@@ -34,7 +34,7 @@ if __name__ == "__main__":
             batches.append(images)
             images = []
             print(str(len(batches)) + " batches scaled.")
-        if len(batches) >= 100:
+        if len(batches) >= 200:
             break
     test_batches = []
     test_images = []
@@ -57,7 +57,7 @@ if __name__ == "__main__":
             test_batches.append(test_images)
             test_images = []
             print(str(len(test_batches)) + " validation batches scaled.")
-        if len(test_batches) >= 10:
+        if len(test_batches) >= 20:
             break
     output = net.inference(images=[np.array(
         size(Image.open(os.path.join("images", "pexels-photo-25953.jpg")),
