@@ -18,6 +18,7 @@ class Network(object):
         )
         scaled_inputs = self.inputs / 256.0
         print("inputs shape: " + str(self.inputs.get_shape()))
+
         # self.layer_params.append({
         #     'filter_count': 64,
         #     'filter_shape': [3, 3]
@@ -79,78 +80,100 @@ class Network(object):
         # })
         # res_layer_9 = self.conv_layer("res_layer_9", self.layer_params[-1], res_layer_8,
         #                               weight_stddev=0.0001, bias_init=0.0) + res_layer_8
+
         # Phase shift layer
-        self.layer_params.append({
-            'filter_count': self.scale_factor * self.scale_factor * 3,
-            'filter_shape': [3, 3]
-        })
-        phase_shift_input_layer = self.conv_layer("phase_shift_input_layer", self.layer_params[-1], scaled_inputs)
-        print("phase_shift_input_layer shape: " + str(phase_shift_input_layer.get_shape()))
-        self.phase_shift_output_layer = phase_shift(phase_shift_input_layer, self.scale_factor, color=True)
-        self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
-        })
-        wide1 = self.conv_layer("wide1", self.layer_params[-1], self.phase_shift_output_layer)
-        self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
-        })
-        wide_res_layer1 = self.conv_layer("wide_res_layer1", self.layer_params[-1], wide1,
-                                          weight_stddev=0.0512, bias_init=0.0) + wide1
+        # self.layer_params.append({
+        #     'filter_count': self.scale_factor * self.scale_factor * 3,
+        #     'filter_shape': [3, 3]
+        # })
+        # phase_shift_input_layer = self.conv_layer("phase_shift_input_layer", self.layer_params[-1], scaled_inputs)
+        # print("phase_shift_input_layer shape: " + str(phase_shift_input_layer.get_shape()))
+        # self.phase_shift_output_layer = phase_shift(phase_shift_input_layer, self.scale_factor, color=True)
+
+        resized = tf.image.resize_bicubic(scaled_inputs,
+                                          [dimensions[1] * self.scale_factor, dimensions[0] * self.scale_factor],
+                                          name="scale_bicubic")
+
         self.layer_params.append({
             'filter_count': 64,
-            'filter_shape': [3, 3]
+            'filter_shape': [9, 9]
         })
-        wide_res_layer2 = self.conv_layer("wide_res_layer2", self.layer_params[-1], wide_res_layer1,
-                                          weight_stddev=0.0256, bias_init=0.0) + wide_res_layer1
+        patch_extraction_layer = self.conv_layer("patch_extraction", self.layer_params[-1], resized)
         self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
+            'filter_count': 32,
+            'filter_shape': [1, 1]
         })
-        wide_res_layer3 = self.conv_layer("wide_res_layer3", self.layer_params[-1], wide_res_layer2,
-                                          weight_stddev=0.0128, bias_init=0.0) + wide_res_layer2
-        self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
-        })
-        wide_res_layer4 = self.conv_layer("wide_res_layer4", self.layer_params[-1], wide_res_layer3,
-                                          weight_stddev=0.0064, bias_init=0.0) + wide_res_layer3
-        self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
-        })
-        wide_res_layer5 = self.conv_layer("wide_res_layer5", self.layer_params[-1], wide_res_layer4,
-                                          weight_stddev=0.0032, bias_init=0.0) + wide_res_layer4
-        self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
-        })
-        wide_res_layer6 = self.conv_layer("wide_res_layer6", self.layer_params[-1], wide_res_layer5,
-                                          weight_stddev=0.0016, bias_init=0.0) + wide_res_layer5
-        self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
-        })
-        wide_res_layer7 = self.conv_layer("wide_res_layer7", self.layer_params[-1], wide_res_layer6,
-                                          weight_stddev=0.0008, bias_init=0.0) + wide_res_layer6
-        self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
-        })
-        wide_res_layer8 = self.conv_layer("wide_res_layer8", self.layer_params[-1], wide_res_layer7,
-                                          weight_stddev=0.0004, bias_init=0.0) + wide_res_layer7
-        self.layer_params.append({
-            'filter_count': 64,
-            'filter_shape': [3, 3]
-        })
-        wide_res_layer9 = self.conv_layer("wide_res_layer9", self.layer_params[-1], wide_res_layer8,
-                                          weight_stddev=0.0002, bias_init=0.0) + wide_res_layer8
+        non_linear_mapping_layer = self.conv_layer("non_linear_mapping_layer", self.layer_params[-1],
+                                                   patch_extraction_layer)
         self.layer_params.append({
             'filter_count': 3,
-            'filter_shape': [3, 3]
+            'filter_shape': [5, 5]
         })
-        self.output = self.conv_layer("output_layer", self.layer_params[-1], wide_res_layer9)
+        self.output = self.conv_layer("reconstruction_layer", self.layer_params[-1],
+                                      non_linear_mapping_layer, linear=True)
+
+        # self.layer_params.append({
+        #     'filter_count': 3,
+        #     'filter_shape': [1, 1]
+        # })
+        # self.output = self.conv_layer("copy", self.layer_params[-1], resized) + resized
+
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [5, 5]
+        # })
+        # wide_res_layer0 = self.conv_layer("wide1", self.layer_params[-1], resized)
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [3, 3]
+        # })
+        # wide_res_layer1 = self.conv_layer("wide_res_layer1", self.layer_params[-1], wide_res_layer0) + wide_res_layer0
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [3, 3]
+        # })
+        # wide_res_layer2 = self.conv_layer("wide_res_layer2", self.layer_params[-1], wide_res_layer1) + wide_res_layer1
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [3, 3]
+        # })
+        # wide_res_layer3 = self.conv_layer("wide_res_layer3", self.layer_params[-1], wide_res_layer2) + wide_res_layer2
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [3, 3]
+        # })
+        # wide_res_layer4 = self.conv_layer("wide_res_layer4", self.layer_params[-1], wide_res_layer3) + wide_res_layer3
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [3, 3]
+        # })
+        # wide_res_layer5 = self.conv_layer("wide_res_layer5", self.layer_params[-1], wide_res_layer4) + wide_res_layer4
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [3, 3]
+        # })
+        # wide_res_layer6 = self.conv_layer("wide_res_layer6", self.layer_params[-1], wide_res_layer5) + wide_res_layer5
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [3, 3]
+        # })
+        # wide_res_layer7 = self.conv_layer("wide_res_layer7", self.layer_params[-1], wide_res_layer6) + wide_res_layer6
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [3, 3]
+        # })
+        # wide_res_layer8 = self.conv_layer("wide_res_layer8", self.layer_params[-1], wide_res_layer7) + wide_res_layer7
+        # self.layer_params.append({
+        #     'filter_count': 64,
+        #     'filter_shape': [3, 3]
+        # })
+        # wide_res_layer9 = self.conv_layer("wide_res_layer9", self.layer_params[-1], wide_res_layer8) + wide_res_layer8
+        # self.layer_params.append({
+        #     'filter_count': 3,
+        #     'filter_shape': [3, 3]
+        # })
+        # self.output = self.conv_layer("output_layer", self.layer_params[-1], wide_res_layer9) + resized
+        #self.output = self.phase_shift_output_layer
         if initialize_loss:
             self.real_images = tf.placeholder(tf.float32,
                                               [self.batch_size,
@@ -161,8 +184,10 @@ class Network(object):
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
             self.epoch = tf.placeholder(tf.int32, name='epoch')
-            self.learning_rate = tf.train.exponential_decay(0.000005, self.epoch,
+            self.learning_rate = tf.train.exponential_decay(0.00005, self.epoch,
                                                             10, 0.95, staircase=True)
+            #self.learning_rate = tf.train.exponential_decay(0.0001, self.epoch,
+            #                                                10, 0.95, staircase=True)
             self.optimized = tf.train.AdamOptimizer(self.learning_rate,
                                                     beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
         self.sess = tf.Session()
@@ -182,13 +207,22 @@ class Network(object):
         initial = tf.constant(initial, shape=shape)
         return tf.Variable(initial)
 
-    def conv_layer(self, name, params, data, weight_stddev=0.1, bias_init=0.1):
+    def conv_layer(self, name, params, data, weight_stddev=0.1, bias_init=0.1, linear=False):
         with tf.variable_scope(name):
             weights = self.weight_variable(params['filter_shape'] + [data.get_shape().as_list()[3],
                                            params['filter_count']], stddev=weight_stddev)
             biases = self.bias_variable([params['filter_count']], initial=bias_init)
-            conv = tf.nn.conv2d(data, weights, strides=[1, 1, 1, 1], padding='SAME')
-            params['output'] = tf.nn.relu(conv + biases)
+            padded_data = tf.pad(data, [[0, 0],
+                                        [(params['filter_shape'][0] - 1) // 2,
+                                         (params['filter_shape'][0] - 1) // 2],
+                                        [(params['filter_shape'][1] - 1) // 2,
+                                         (params['filter_shape'][1] - 1) // 2],
+                                        [0, 0]], "SYMMETRIC")
+            conv = tf.nn.conv2d(padded_data, weights, strides=[1, 1, 1, 1], padding='VALID')
+            if not linear:
+                params['output'] = tf.nn.relu(conv + biases)
+            else:
+                params['output'] = conv + biases
             params['biases'] = biases
             params['weights'] = weights
             return params['output']
