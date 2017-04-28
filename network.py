@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
 import tensorflow as tf
-from subpixel import PS as phase_shift
-from scipy.misc import imresize
 import numpy as np
 import os
 
@@ -11,6 +9,7 @@ import os
 class Network(object):
     def __init__(self, dimensions, batch_size, initialize_loss=True):
         self.batch_size = batch_size
+        self.dimensions = dimensions
         self.scale_factor = 2
         self.layer_params = []
         self.inputs = tf.placeholder(
@@ -19,88 +18,17 @@ class Network(object):
         scaled_inputs = self.inputs / 256.0
         print("inputs shape: " + str(self.inputs.get_shape()))
 
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # hidden1 = self.conv_layer("hidden1", self.layer_params[-1], scaled_inputs)
-        # print("hidden1 shape: " + str(hidden1.get_shape()))
-        # # Residual layers
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # res_layer_1 = self.conv_layer("res_layer_1", self.layer_params[-1], hidden1,
-        #                               weight_stddev=0.0256, bias_init=0.0) + hidden1
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # res_layer_2 = self.conv_layer("res_layer_2", self.layer_params[-1], res_layer_1,
-        #                               weight_stddev=0.0128, bias_init=0.0) + res_layer_1
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # res_layer_3 = self.conv_layer("res_layer_3", self.layer_params[-1], res_layer_2,
-        #                               weight_stddev=0.0064, bias_init=0.0) + res_layer_2
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # res_layer_4 = self.conv_layer("res_layer_4", self.layer_params[-1], res_layer_3,
-        #                               weight_stddev=0.0032, bias_init=0.0) + res_layer_3
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # res_layer_5 = self.conv_layer("res_layer_5", self.layer_params[-1], res_layer_4,
-        #                               weight_stddev=0.0016, bias_init=0.0) + res_layer_4
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # res_layer_6 = self.conv_layer("res_layer_6", self.layer_params[-1], res_layer_5,
-        #                               weight_stddev=0.0008, bias_init=0.0) + res_layer_5
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # res_layer_7 = self.conv_layer("res_layer_7", self.layer_params[-1], res_layer_6,
-        #                               weight_stddev=0.0004, bias_init=0.0) + res_layer_6
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # res_layer_8 = self.conv_layer("res_layer_8", self.layer_params[-1], res_layer_7,
-        #                               weight_stddev=0.0002, bias_init=0.0) + res_layer_7
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # res_layer_9 = self.conv_layer("res_layer_9", self.layer_params[-1], res_layer_8,
-        #                               weight_stddev=0.0001, bias_init=0.0) + res_layer_8
-
-        # Phase shift layer
-        # self.layer_params.append({
-        #     'filter_count': self.scale_factor * self.scale_factor * 3,
-        #     'filter_shape': [3, 3]
-        # })
-        # phase_shift_input_layer = self.conv_layer("phase_shift_input_layer", self.layer_params[-1], scaled_inputs)
-        # print("phase_shift_input_layer shape: " + str(phase_shift_input_layer.get_shape()))
-        # self.phase_shift_output_layer = phase_shift(phase_shift_input_layer, self.scale_factor, color=True)
-
         resized = tf.image.resize_bicubic(scaled_inputs,
                                           [dimensions[1] * self.scale_factor, dimensions[0] * self.scale_factor],
                                           name="scale_bicubic")
 
         self.layer_params.append({
-            'filter_count': 64,
+            'filter_count': 64 * 3,
             'filter_shape': [9, 9]
         })
         patch_extraction_layer = self.conv_layer("patch_extraction", self.layer_params[-1], resized)
         self.layer_params.append({
-            'filter_count': 32,
+            'filter_count': 32 * 3,
             'filter_shape': [1, 1]
         })
         non_linear_mapping_layer = self.conv_layer("non_linear_mapping_layer", self.layer_params[-1],
@@ -112,68 +40,6 @@ class Network(object):
         self.output = self.conv_layer("reconstruction_layer", self.layer_params[-1],
                                       non_linear_mapping_layer, linear=True)
 
-        # self.layer_params.append({
-        #     'filter_count': 3,
-        #     'filter_shape': [1, 1]
-        # })
-        # self.output = self.conv_layer("copy", self.layer_params[-1], resized) + resized
-
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [5, 5]
-        # })
-        # wide_res_layer0 = self.conv_layer("wide1", self.layer_params[-1], resized)
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # wide_res_layer1 = self.conv_layer("wide_res_layer1", self.layer_params[-1], wide_res_layer0) + wide_res_layer0
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # wide_res_layer2 = self.conv_layer("wide_res_layer2", self.layer_params[-1], wide_res_layer1) + wide_res_layer1
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # wide_res_layer3 = self.conv_layer("wide_res_layer3", self.layer_params[-1], wide_res_layer2) + wide_res_layer2
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # wide_res_layer4 = self.conv_layer("wide_res_layer4", self.layer_params[-1], wide_res_layer3) + wide_res_layer3
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # wide_res_layer5 = self.conv_layer("wide_res_layer5", self.layer_params[-1], wide_res_layer4) + wide_res_layer4
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # wide_res_layer6 = self.conv_layer("wide_res_layer6", self.layer_params[-1], wide_res_layer5) + wide_res_layer5
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # wide_res_layer7 = self.conv_layer("wide_res_layer7", self.layer_params[-1], wide_res_layer6) + wide_res_layer6
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # wide_res_layer8 = self.conv_layer("wide_res_layer8", self.layer_params[-1], wide_res_layer7) + wide_res_layer7
-        # self.layer_params.append({
-        #     'filter_count': 64,
-        #     'filter_shape': [3, 3]
-        # })
-        # wide_res_layer9 = self.conv_layer("wide_res_layer9", self.layer_params[-1], wide_res_layer8) + wide_res_layer8
-        # self.layer_params.append({
-        #     'filter_count': 3,
-        #     'filter_shape': [3, 3]
-        # })
-        # self.output = self.conv_layer("output_layer", self.layer_params[-1], wide_res_layer9) + resized
-        #self.output = self.phase_shift_output_layer
         if initialize_loss:
             self.real_images = tf.placeholder(tf.float32,
                                               [self.batch_size,
@@ -184,10 +50,8 @@ class Network(object):
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
             self.epoch = tf.placeholder(tf.int32, name='epoch')
-            self.learning_rate = tf.train.exponential_decay(0.00005, self.epoch,
+            self.learning_rate = tf.train.exponential_decay(0.0001, self.epoch,
                                                             10, 0.95, staircase=True)
-            #self.learning_rate = tf.train.exponential_decay(0.0001, self.epoch,
-            #                                                10, 0.95, staircase=True)
             self.optimized = tf.train.AdamOptimizer(self.learning_rate,
                                                     beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
         self.sess = tf.Session()
@@ -236,22 +100,21 @@ class Network(object):
     def get_scale_factor(self):
         return self.scale_factor
 
-    def train_step(self, images, epoch=0):
-        resized_images = [imresize(image, (image.shape[0] // self.scale_factor,
-                                           image.shape[1] // self.scale_factor)) for image in images]
+    def get_dimensions(self):
+        return self.dimensions
+
+    def train_step(self, images, target_images, epoch=0):
         _, loss, lr = self.sess.run([self.optimized, self.loss, self.learning_rate], feed_dict={
-            self.inputs: np.array(resized_images),
-            self.real_images: np.array(images),
+            self.inputs: np.array(images),
+            self.real_images: np.array(target_images),
             self.epoch: epoch
         })
         return loss, lr
 
-    def validation_step(self, images):
-        resized_images = [imresize(image, (image.shape[0] // self.scale_factor,
-                                           image.shape[1] // self.scale_factor)) for image in images]
+    def validation_step(self, images, target_images):
         loss = self.sess.run([self.loss], feed_dict={
-            self.inputs: np.array(resized_images),
-            self.real_images: np.array(images)
+            self.inputs: np.array(images),
+            self.real_images: np.array(target_images)
         })
         return loss
 
