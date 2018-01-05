@@ -6,9 +6,35 @@ from scale import size, load_batches
 import numpy as np
 import os
 import sys
+from sacred import Experiment
+from sacred.observers import MongoObserver
+from sacred.utils import apply_backspaces_and_linefeeds
+
+ex = Experiment('Superresolution', ingredients=[])
+ex.observers.append(MongoObserver.create())
+ex.captured_out_filter = apply_backspaces_and_linefeeds
 
 
-def training(input_training_batches, target_training_batches, net):
+@ex.config
+def my_config():
+    image_size = (320, 240)
+    batch_size = 7
+    no_epochs = 500
+
+
+@ex.capture
+def log_training_performance(_run, loss, lr):
+    _run.log_scalar("loss", float(loss))
+    _run.log_scalar("lr", float(lr))
+
+
+@ex.capture
+def log_validation_performance(_run, val_loss):
+    _run.log_scalar("validation_loss", float(val_loss))
+    _run.result = float(val_loss)
+
+
+def training(input_training_batches, target_training_batches, net, epoch):
     training_losses = []
     lr = 0.0
     for batch_no, batch in enumerate(input_training_batches):
@@ -18,6 +44,7 @@ def training(input_training_batches, target_training_batches, net):
         sys.stdout.write("[%-50s] %d%%" % ('=' * int((batch_no + 1) / len(input_training_batches) * 50),
                                            int((batch_no + 1) / len(input_training_batches) * 100)))
         sys.stdout.flush()
+        log_training_performance(loss=loss, lr=lr)
     print("\nLearning rate: " + str(lr))
     return training_losses
 
@@ -32,27 +59,22 @@ def validation(input_validation_batches, target_validation_batches, net):
         sys.stdout.write("[%-50s] %d%%" % ('=' * int((validation_batch_no + 1) / len(input_validation_batches) * 50),
                                            int((validation_batch_no + 1) / len(input_validation_batches) * 100)))
         sys.stdout.flush()
+        log_validation_performance(val_loss=validation_loss)
     print("")
     return validation_losses
-
-
-def log_losses(losses, validation_losses):
-    with open("losses.csv", 'a') as csv:
-        csv.write(", ".join(
-            [str(loss_value) for loss_value in [sum(validation_losses) / len(validation_losses)] + losses]) + "\n")
 
 
 def inference_and_save_example_image(index, net):
     example_image = Image.open(os.path.join("scaled_images", "validation", "small",
                                             os.listdir(os.path.join("scaled_images", "validation", "small"))[0]))
-    inference_output = net.inference(images=[np.array(example_image) for _ in range(network.get_batch_size())])
+    inference_output = net.inference(images=[np.array(example_image) for _ in range(net.get_batch_size())])
     Image.fromarray(np.clip(inference_output[0], 0.0, 255.0).astype(np.uint8)).save(
         "test_image_epoch_" + str(index) + ".png")
 
 
-if __name__ == "__main__":
-    image_size = (320, 240)
-    network = Network(dimensions=(320, 240), batch_size=5)
+@ex.automain
+def init_and_train(image_size, batch_size, no_epochs):
+    network = Network(dimensions=image_size, batch_size=batch_size)
     network.initialize()
     if os.path.exists(os.path.abspath("network_params.index")):
         network.load("network_params")
@@ -63,14 +85,13 @@ if __name__ == "__main__":
     print("Validation loss: " + str(best_validation_loss))
     print("Params saved: " + network.save())
     inference_and_save_example_image(0, network)
-    for epoch in range(20000):
+    for epoch in range(no_epochs):
         print("\nTraining epoch " + str(epoch + 1) + " ...")
-        train_losses = training(input_batches, target_batches, network)
+        train_losses = training(input_batches, target_batches, network, epoch)
         print("Loss: " + str(train_losses) + "\n")
         val_losses = validation(input_batches_test, target_batches_test, network)
         avg_validation_loss = sum(val_losses) / len(val_losses)
         print("Validation loss: " + str(avg_validation_loss))
-        log_losses(train_losses, val_losses)
         if avg_validation_loss < best_validation_loss:
             best_validation_loss = avg_validation_loss
             print("Params saved: " + network.save())

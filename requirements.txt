@@ -3,3 +3,5 @@ pillow
 numpy
 scipy
 tensorflow
+pymongo
+sacred
