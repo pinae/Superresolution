@@ -7,7 +7,7 @@ import os
 
 
 class Network(object):
-    def __init__(self, dimensions, batch_size, initialize_loss=True):
+    def __init__(self, dimensions, batch_size, initialize_loss=True, lr=0.0001, lr_stair_width=10, lr_decay=0.95):
         self.batch_size = batch_size
         self.dimensions = dimensions
         self.scale_factor = 2
@@ -50,8 +50,8 @@ class Network(object):
             self.loss = self.get_loss()
             self.summary = tf.summary.scalar("loss", self.loss)
             self.epoch = tf.placeholder(tf.int32, name='epoch')
-            self.learning_rate = tf.train.exponential_decay(0.0001, self.epoch,
-                                                            10, 0.95, staircase=True)
+            self.learning_rate = tf.train.exponential_decay(lr, self.epoch,
+                                                            lr_stair_width, lr_decay, staircase=True)
             self.optimized = tf.train.AdamOptimizer(self.learning_rate,
                                                     beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(self.loss)
         self.sess = tf.Session()

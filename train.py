@@ -20,6 +20,9 @@ def my_config():
     image_size = (320, 240)
     batch_size = 7
     no_epochs = 500
+    lr = 0.0001
+    lr_stair_width = 10
+    lr_decay = 0.95
 
 
 @ex.capture
@@ -73,8 +76,9 @@ def inference_and_save_example_image(index, net):
 
 
 @ex.automain
-def init_and_train(image_size, batch_size, no_epochs):
-    network = Network(dimensions=image_size, batch_size=batch_size)
+def init_and_train(image_size, batch_size, no_epochs, lr, lr_stair_width, lr_decay):
+    network = Network(dimensions=image_size, batch_size=batch_size,
+                      lr=lr, lr_stair_width=lr_stair_width, lr_decay=lr_decay)
     network.initialize()
     if os.path.exists(os.path.abspath("network_params.index")):
         network.load("network_params")
