@@ -5,7 +5,8 @@ Double the size of images using a convolutional ANN.
 ```
 git clone https://github.com/pinae/Superresolution.git
 cd Superresolution
-pyvenv env
+python3 -m venv env
+source env/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
