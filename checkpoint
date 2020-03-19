@@ -1,2 +1,2 @@
-model_checkpoint_path: "/home/jme/Code/Superresolution/network_params"
-all_model_checkpoint_paths: "/home/jme/Code/Superresolution/network_params"
+model_checkpoint_path: "/home/pina/Code/Superresolution/network_params"
+all_model_checkpoint_paths: "/home/pina/Code/Superresolution/network_params"

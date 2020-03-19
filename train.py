@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from network import Network
 from PIL import Image
@@ -9,16 +8,18 @@ import sys
 from sacred import Experiment
 from sacred.observers import MongoObserver
 from sacred.utils import apply_backspaces_and_linefeeds
+from gpu_helpers import init_all_gpu
+init_all_gpu()
 
 ex = Experiment('Superresolution', ingredients=[])
-ex.observers.append(MongoObserver.create())
+ex.observers.append(MongoObserver())
 ex.captured_out_filter = apply_backspaces_and_linefeeds
 
 
 @ex.config
 def my_config():
     image_size = (320, 240)
-    batch_size = 7
+    batch_size = 5
     no_epochs = 500
     lr = 0.0001
     lr_stair_width = 10
